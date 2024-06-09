@@ -1,51 +1,100 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import CredentialsTable from "./CredentialsTable";
+import { db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "../firebase";
 
 export default function Login() {
+  // Create references for the input fields to easily access their values
   const emailRef = useRef();
   const passwordRef = useRef();
   const nameRef = useRef();
+  
+  // State to hold the list of credentials fetched from Firebase
   const [credentialsList, setCredentialsList] = useState([]);
-  const [editIndex, setEditIndex] = useState(null); // Track the index of item being edited
+  
+  // State to track the index of the credential currently being edited
+  const [editIndex, setEditIndex] = useState(null);
 
-  function handleSubmit(event) {
+  // Reference to the "credentials" collection in Firebase
+  const credentialsCollection = collection(db, "credentials");
+
+  // Fetch credentials from Firebase when the component mounts
+  useEffect(() => {
+    fetchCredentialsFromFirebase();
+  }, []);
+
+  // Function to fetch credentials from Firebase and update the state
+  const fetchCredentialsFromFirebase = async () => {
+    const querySnapshot = await getDocs(credentialsCollection);
+    const fetchedCredentials = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setCredentialsList(fetchedCredentials);
+  };
+
+  // Function to add new credentials to Firebase
+  const createCredentialsOnFirebase = async (newCredentials) => {
+    await addDoc(credentialsCollection, newCredentials);
+    fetchCredentialsFromFirebase();
+  };
+
+  // Function to update existing credentials in Firebase
+  const updateCredentialsOnFirebase = async (id, updatedCredentials) => {
+    const docRef = doc(db, "credentials", id);
+    await updateDoc(docRef, updatedCredentials);
+    fetchCredentialsFromFirebase();
+  };
+
+  // Function to delete credentials from Firebase
+  const deleteCredentialsFromFirebase = async (id) => {
+    const docRef = doc(db, "credentials", id);
+    await deleteDoc(docRef);
+    fetchCredentialsFromFirebase();
+  };
+
+  // Function to handle form submission
+  const handleSubmit = (event) => {
     event.preventDefault();
 
+    // Get values from the input fields
     const email = emailRef.current.value;
     const password = passwordRef.current.value;
     const name = nameRef.current.value;
 
+    // Prevent submission if any field is empty
     if (!email || !password || !name) {
-      return; // Prevent adding empty rows
+      return;
     }
 
+    // Create a new credentials object
+    const newCredentials = { email, password, name };
+
+    // If editing, update the existing credentials; otherwise, create new credentials
     if (editIndex !== null) {
-      // If editIndex is not null, it means we're editing an existing item
-      const updatedList = [...credentialsList];
-      updatedList[editIndex] = { email, password, name };
-      setCredentialsList(updatedList);
+      const id = credentialsList[editIndex].id;
+      updateCredentialsOnFirebase(id, newCredentials);
       setEditIndex(null); // Reset editIndex after editing
     } else {
-      // If editIndex is null, it means we're adding a new item
-      setCredentialsList((prevList) => [...prevList, { email, password, name }]);
+      createCredentialsOnFirebase(newCredentials);
     }
 
+    // Clear the input fields after submission
     emailRef.current.value = "";
     passwordRef.current.value = "";
     nameRef.current.value = "";
-  }
+  };
 
-  function handleEdit(index) {
+  // Function to handle editing of credentials
+  const handleEdit = (index) => {
     const itemToEdit = credentialsList[index];
     emailRef.current.value = itemToEdit.email;
     passwordRef.current.value = itemToEdit.password;
     nameRef.current.value = itemToEdit.name;
     setEditIndex(index);
-  }
+  };
 
-  function handleDelete(index) {
-    setCredentialsList((prevList) => prevList.filter((_, i) => i !== index));
-  }
+  // Function to handle deletion of credentials
+  const handleDelete = (index) => {
+    const id = credentialsList[index].id;
+    deleteCredentialsFromFirebase(id);
+  };
 
   return (
     <div>
@@ -64,13 +113,7 @@ export default function Login() {
 
           <div className="control no-margin">
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              name="password"
-              ref={passwordRef}
-              required
-            />
+            <input id="password" type="password" name="password" ref={passwordRef} required />
           </div>
         </div>
 
@@ -85,129 +128,9 @@ export default function Login() {
         <CredentialsTable
           credentialsList={credentialsList}
           handleEdit={handleEdit} // Pass handleEdit function to CredentialsTable
-          handleDelete={handleDelete}
+          handleDelete={handleDelete} // Pass handleDelete function to CredentialsTable
         />
       )}
     </div>
   );
 }
-
-// ///API Releated
-// import React, { useRef, useState } from "react";
-// import CredentialsTable from "./CredentialsTable";
-
-// // Simulated API functions
-// const API = {
-//   fetchCredentials: () => {
-//     const savedCredentials = localStorage.getItem("credentials");
-//     return savedCredentials ? JSON.parse(savedCredentials) : [];
-//   },
-//   createCredentials: (newCredentials) => {
-//     const credentialsList = API.fetchCredentials();
-//     credentialsList.push(newCredentials);
-//     localStorage.setItem("credentials", JSON.stringify(credentialsList));
-//     return credentialsList;
-//   },
-//   updateCredentials: (index, editedCredentials) => {
-//     const credentialsList = API.fetchCredentials();
-//     credentialsList[index] = editedCredentials;
-//     localStorage.setItem("credentials", JSON.stringify(credentialsList));
-//     return credentialsList;
-//   },
-//   deleteCredentials: (index) => {
-//     const credentialsList = API.fetchCredentials();
-//     credentialsList.splice(index, 1);
-//     localStorage.setItem("credentials", JSON.stringify(credentialsList));
-//     return credentialsList;
-//   },
-// };
-
-// export default function Login() {
-//   const emailRef = useRef();
-//   const passwordRef = useRef();
-//   const nameRef = useRef();
-//   const [credentialsList, setCredentialsList] = useState(
-//     API.fetchCredentials()
-//   );
-
-//   function handleSubmit(event) {
-//     event.preventDefault();
-
-//     const email = emailRef.current.value;
-//     const password = passwordRef.current.value;
-//     const name = nameRef.current.value;
-
-//     if (!email || !password || !name) {
-//       return; // Prevent adding empty rows
-//     }
-
-//     const newCredentials = { email, password, name };
-
-//     // Call the simulated API to create new credentials
-//     const updatedCredentialsList = API.createCredentials(newCredentials);
-//     setCredentialsList(updatedCredentialsList);
-
-//     // Clear the input fields
-//     emailRef.current.value = "";
-//     passwordRef.current.value = "";
-//     nameRef.current.value = "";
-//   }
-
-//   function handleEdit(index, editedCredentials) {
-//     // Call the simulated API to update credentials
-//     const updatedCredentialsList = API.updateCredentials(
-//       index,
-//       editedCredentials
-//     );
-//     setCredentialsList(updatedCredentialsList);
-//   }
-
-//   function handleDelete(index) {
-//     // Call the simulated API to delete credentials
-//     const updatedCredentialsList = API.deleteCredentials(index);
-//     setCredentialsList(updatedCredentialsList);
-//   }
-
-//   return (
-//     <div>
-//       <form onSubmit={handleSubmit}>
-//         <h2>Login</h2>
-
-//         <div className="control-row">
-//           <div className="control no-margin">
-//             <label htmlFor="name">Name</label>
-//             <input id="name" type="text" name="name" ref={nameRef} />
-//           </div>
-//           <div className="control no-margin">
-//             <label htmlFor="email">Email</label>
-//             <input id="email" type="email" name="email" ref={emailRef} />
-//           </div>
-
-//           <div className="control no-margin">
-//             <label htmlFor="password">Password</label>
-//             <input
-//               id="password"
-//               type="password"
-//               name="password"
-//               ref={passwordRef}
-//             />
-//           </div>
-//         </div>
-
-//         <p className="form-actions">
-//           <button type="submit" className="button">
-//             ADD
-//           </button>
-//         </p>
-//       </form>
-
-//       {credentialsList.length > 0 && (
-//         <CredentialsTable
-//           credentialsList={credentialsList}
-//           handleEdit={handleEdit}
-//           handleDelete={handleDelete}
-//         />
-//       )}
-//     </div>
-//   );
-// }
