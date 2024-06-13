@@ -7,7 +7,8 @@ export default function Login() {
   const emailRef = useRef();
   const passwordRef = useRef();
   const nameRef = useRef();
-  const roleRef = useRef();
+
+    const roleRef = useRef();
   
   // State to hold the list of credentials fetched from Firebase
   const [credentialsList, setCredentialsList] = useState([]);
@@ -111,7 +112,7 @@ const handleEdit = (index) => {
     roleRef.current.value = itemToEdit.role;
     setEditIndex(index);
   } else {
-    alert("You don't have a valid role to edit this credential.");
+    alert("You don't have a valid Role to edit this credential .");
   }
 };
 
