@@ -7,6 +7,7 @@ export default function Login() {
   const emailRef = useRef();
   const passwordRef = useRef();
   const nameRef = useRef();
+  const roleRef = useRef();
   
   // State to hold the list of credentials fetched from Firebase
   const [credentialsList, setCredentialsList] = useState([]);
@@ -57,14 +58,15 @@ export default function Login() {
     const email = emailRef.current.value;
     const password = passwordRef.current.value;
     const name = nameRef.current.value;
+    const role = roleRef.current.value;
 
     // Prevent submission if any field is empty
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !role) {
       return;
     }
 
     // Create a new credentials object
-    const newCredentials = { email, password, name };
+    const newCredentials = { email, password, name, role };
 
     // If editing, update the existing credentials; otherwise, create new credentials
     if (editIndex !== null) {
@@ -79,22 +81,51 @@ export default function Login() {
     emailRef.current.value = "";
     passwordRef.current.value = "";
     nameRef.current.value = "";
+    roleRef.current.value='';
   };
 
+  // // Function to handle editing of credentials
+  // const handleEdit = (index) => {
+    
+  //   const itemToEdit = credentialsList[index];
+  //   emailRef.current.value = itemToEdit.email;
+  //   passwordRef.current.value = itemToEdit.password;
+  //   nameRef.current.value = itemToEdit.name;
+  //   roleRef.current.value = itemToEdit.role;
+  //   setEditIndex(index);
+  // };
+
+  // // Function to handle deletion of credentials
+  // const handleDelete = (index) => {
+  //   const id = credentialsList[index].id;
+  //   deleteCredentialsFromFirebase(id);
+  // };
+
   // Function to handle editing of credentials
-  const handleEdit = (index) => {
-    const itemToEdit = credentialsList[index];
+const handleEdit = (index) => {
+  const itemToEdit = credentialsList[index];
+  if (itemToEdit.role === 'admin') {
     emailRef.current.value = itemToEdit.email;
     passwordRef.current.value = itemToEdit.password;
     nameRef.current.value = itemToEdit.name;
+    roleRef.current.value = itemToEdit.role;
     setEditIndex(index);
-  };
+  } else {
+    alert("You don't have a valid role to edit this credential.");
+  }
+};
 
-  // Function to handle deletion of credentials
-  const handleDelete = (index) => {
-    const id = credentialsList[index].id;
+// Function to handle deletion of credentials
+const handleDelete = (index) => {
+  const itemToDelete = credentialsList[index];
+  if (itemToDelete.role === 'admin') {
+    const id = itemToDelete.id;
     deleteCredentialsFromFirebase(id);
-  };
+  } else {
+    alert("You don't have a valid role to delete this credential.");
+  }
+};
+
 
   return (
     <div>
@@ -115,7 +146,16 @@ export default function Login() {
             <label htmlFor="password">Password</label>
             <input id="password" type="password" name="password" ref={passwordRef} required />
           </div>
+          <div className="control no-margin">
+            <label htmlFor="role">Role</label>
+            <select id="role" name="role" ref={roleRef} required>
+              <option value="admin">Admin</option>
+              <option value="user">User</option>
+            </select>
+          </div>
         </div>
+
+        
 
         <p className="form-actions">
           <button type="submit" className="button">
@@ -134,3 +174,4 @@ export default function Login() {
     </div>
   );
 }
+
